@@ -3,11 +3,6 @@ import {
   AlertCircle, 
   Hourglass, 
   Thermometer, 
-  Cpu, 
-  Wifi, 
-  Gauge, 
-  BatteryCharging, 
-  RefreshCw,
   Droplet,
   Radio
 } from 'lucide-react';
@@ -27,7 +22,6 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
   const berat = telemetry.berat;
   const suhu = telemetry.suhu;
   const kelembaban = telemetry.kelembaban;
-  const tekanan = telemetry.tekanan ?? 1013.2;
 
   // Flow rate: 1 drop = 1/20 mL -> mL/h = tpm * 3
   const flowRate = (tpm * 3).toFixed(1);
@@ -41,7 +35,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
   const volumeMl = telemetry.volume ?? Math.round(berat * 0.98);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
       {/* ---------------- CARD 1: DROP RATE (TPM) ---------------- */}
       <div className={`bg-white rounded-2xl border p-5 shadow-xs transition-all relative flex flex-col justify-between ${
         isAlertState || tpm === 0 
@@ -322,90 +316,8 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Barometric Pressure Footer */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-slate-600">
-          <span className="flex items-center gap-1 text-[11px]">
-            <Gauge className="w-3.5 h-3.5 text-slate-500" />
-            Baro
-          </span>
-          <span className="font-bold text-slate-800 text-[11px]">
-            {tekanan.toFixed(1)} hPa <span className="font-normal text-slate-500">(Nominal)</span>
-          </span>
-        </div>
-      </div>
-
-      {/* ---------------- CARD 4: SYSTEM STATE ---------------- */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-        <div>
-          {/* Header */}
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="block text-[10px] uppercase font-mono tracking-wider font-semibold text-slate-400">
-                  SENSOR NODE V2.4
-                </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-1.5 font-sans">
-                System State
-                <Cpu className="w-3.5 h-3.5 text-blue-500" />
-              </h3>
-            </div>
-          </div>
-
-          {/* Diagnostics rows */}
-          <div className="space-y-3 mt-3 text-xs font-mono">
-            {/* RF Link */}
-            <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/70">
-              <span className="block text-[10px] uppercase font-semibold text-slate-400">
-                NRF24L01+ RF Link
-              </span>
-              <div className="flex items-center justify-between mt-1 text-slate-800 font-bold">
-                <span className="flex items-center gap-1.5">
-                  <Wifi className="w-3.5 h-3.5 text-blue-600" />
-                  {telemetry.rssi ?? -64} dBm
-                </span>
-                <span className="text-[11px] text-slate-500 font-normal">
-                  ({telemetry.qos ?? 99.8}% QoS)
-                </span>
-              </div>
-            </div>
-
-            {/* ESP32 Gateway Node */}
-            <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/70">
-              <span className="block text-[10px] uppercase font-semibold text-slate-400">
-                ESP32 Gateway Node
-              </span>
-              <div className="text-slate-800 font-bold mt-1 text-[11px]">
-                {telemetry.firmware ?? 'FW v2.4.1'} &middot; Up {telemetry.uptime ?? '18h 42m'}
-              </div>
-            </div>
-
-            {/* Sensor Tare Drift */}
-            <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/70">
-              <span className="block text-[10px] uppercase font-semibold text-slate-400">
-                Sensor Tare Drift
-              </span>
-              <div className="text-slate-800 font-bold mt-1 text-[11px]">
-                &lt; 0.02g &middot; <span className="text-emerald-700">High Precision</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Battery & Sync footer */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-slate-600">
-          <span className="flex items-center gap-1.5 text-[11px] text-slate-700">
-            <BatteryCharging className="w-3.5 h-3.5 text-emerald-600" />
-            Mains ({telemetry.battery ?? 98}% BATT)
-          </span>
-          <span className="flex items-center gap-1 text-[11px] text-slate-500">
-            <RefreshCw className="w-3 h-3 text-blue-500 animate-spin" />
-            0.4s sync
-          </span>
-        </div>
       </div>
     </div>
   );
 };
+

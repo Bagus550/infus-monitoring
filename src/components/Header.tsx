@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  Activity, 
   Volume2, 
   VolumeX, 
   Database, 
-  ChevronDown, 
-  PlusSquare, 
-  Radio
+  ChevronDown
 } from 'lucide-react';
 import { ConnectionState } from '../types/infusion';
 import { audioAlert } from '../services/audioAlert';
@@ -14,7 +11,7 @@ import { audioAlert } from '../services/audioAlert';
 interface HeaderProps {
   location: string;
   onLocationChange: (loc: string) => void;
-  connectionState: ConnectionState;
+  connectionState?: ConnectionState;
   latency?: number;
   onOpenFirebaseConfig: () => void;
   isFirebaseConfigured: boolean;
@@ -31,8 +28,6 @@ const LOCATIONS = [
 export const Header: React.FC<HeaderProps> = ({
   location,
   onLocationChange,
-  connectionState,
-  latency = 14,
   onOpenFirebaseConfig,
   isFirebaseConfigured
 }) => {
@@ -48,38 +43,6 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const getStatusDisplay = () => {
-    switch (connectionState) {
-      case 'connected':
-        return {
-          dotColor: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]',
-          textColor: 'text-slate-700',
-          label: `ESP32 Gateway: Connected ${latency}ms`
-        };
-      case 'connecting':
-        return {
-          dotColor: 'bg-amber-500 animate-ping',
-          textColor: 'text-amber-800',
-          label: 'ESP32 Gateway: Connecting...'
-        };
-      case 'error':
-        return {
-          dotColor: 'bg-rose-500',
-          textColor: 'text-rose-700',
-          label: 'ESP32 Gateway: Error / Check RTDB'
-        };
-      case 'unconfigured':
-      default:
-        return {
-          dotColor: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]',
-          textColor: 'text-slate-700',
-          label: `ESP32 Gateway: Connected ${latency}ms`
-        };
-    }
-  };
-
-  const status = getStatusDisplay();
-
   return (
     <header className="bg-white border-b border-slate-200/80 px-4 lg:px-8 py-3 sticky top-0 z-30 shadow-xs">
       <div className="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-3">
@@ -89,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-white text-xl leading-none">✚</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-sans font-bold text-slate-900 text-lg tracking-tight">Med-Monitor</span>
+            <span className="font-sans font-bold text-slate-900 text-lg tracking-tight">Med.Intermedia</span>
             <span className="text-[11px] font-mono tracking-wider font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
               STATION V3.4
             </span>
@@ -138,16 +101,8 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Right side controls: Gateway status, Audio Alert Sync, Firebase Settings */}
+        {/* Right side controls: Audio Alert Sync, Firebase Settings */}
         <div className="flex items-center gap-3 lg:gap-5 flex-wrap">
-          {/* ESP32 Gateway Pill */}
-          <div className="flex items-center gap-2 bg-[#f8fafc] border border-slate-200 px-3 py-1.5 rounded-full text-xs font-mono">
-            <span className={`w-2.5 h-2.5 rounded-full ${status.dotColor}`} />
-            <span className={`text-[12px] font-medium ${status.textColor}`}>
-              {status.label}
-            </span>
-          </div>
-
           {/* Audio Alert Sync button */}
           <button
             onClick={toggleAudio}

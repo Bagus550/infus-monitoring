@@ -1,17 +1,18 @@
 import { initializeApp, getApps, deleteApp, type FirebaseApp } from 'firebase/app';
 import { getDatabase, ref, onValue, set, type Database, type Unsubscribe } from 'firebase/database';
+import { getAnalytics } from "firebase/analytics";
 import { FirebaseRtdbConfig, InfusionTelemetry, ConnectionState } from '../types/infusion';
 
 const CONFIG_STORAGE_KEY = 'med_monitor_firebase_rtdb_config';
 
 export const DEFAULT_FIREBASE_CONFIG: FirebaseRtdbConfig = {
-  apiKey: '',
-  authDomain: '',
-  databaseURL: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+  apiKey: 'AIzaSyBiVYX297I_AzQiBbKiGkQGpQnkzyqj-Rk',
+  authDomain: 'monitoring-infus-353c2.firebaseapp.com',
+  databaseURL: 'https://monitoring-infus-353c2-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'monitoring-infus-353c2',
+  storageBucket: 'monitoring-infus-353c2.firebasestorage.app',
+  messagingSenderId: '683979006731',
+  appId: '1:683979006731:web:406d07e575440ffbfef80e',
   path: '/infus'
 };
 
@@ -161,39 +162,78 @@ class FirebaseRealtimeService {
     }
 
     const raw = val as Record<string, unknown>;
-    const tpm = Number(raw.tpm ?? raw.tpm_count ?? raw.dropRate ?? raw.tetesan ?? 0);
-    const berat = Number(raw.berat ?? raw.weight ?? raw.gram ?? 0);
-    const volume = Number(raw.volume ?? raw.vol ?? Math.round(berat * 0.98));
-    const suhu = Number(raw.suhu ?? raw.temperature ?? raw.temp ?? 21.4);
-    const kelembaban = Number(raw.kelembaban ?? raw.humidity ?? raw.hum ?? 48.2);
-    const tekanan = Number(raw.tekanan ?? raw.pressure ?? raw.baro ?? 1013.2);
+
+    // Case-insensitive key lookup helper
+    const getVal = (...keys: string[]): unknown => {
+      for (const key of keys) {
+        if (raw[key] !== undefined && raw[key] !== null) return raw[key];
+        const foundKey = Object.keys(raw).find((k) => k.toLowerCase() === key.toLowerCase());
+        if (foundKey && raw[foundKey] !== undefined && raw[foundKey] !== null) return raw[foundKey];
+      }
+      return undefined;
+    };
+
+    const parseNum = (v: unknown): number | undefined => {
+      if (v === undefined || v === null || v === '') return undefined;
+      const n = Number(v);
+      return isNaN(n) ? undefined : n;
+    };
+
+    const rawTpm = parseNum(getVal('tpm', 'tpm_count', 'dropRate', 'droprate', 'drop_rate', 'tetesan', 'bpm'));
+    const rawBerat = parseNum(getVal('berat_gram', 'berat', 'weight', 'gram', 'loadcell', 'berat_infus', 'w', 'b'));
+    const rawVolume = parseNum(getVal('volume', 'vol', 'ml', 'v', 'volume_infus'));
+    const rawSuhu = parseNum(getVal('suhu', 'temperature', 'temp', 't', 'celsius', 'suhu_ruang'));
+    const rawKelembaban = parseNum(getVal('kelembaban', 'kelembapan', 'humidity', 'hum', 'rh', 'h'));
+    const rawTekanan = parseNum(getVal('tekanan', 'pressure', 'baro'));
+
+    const res: Partial<InfusionTelemetry> = {};
+
+    if (rawTpm !== undefined) res.tpm = Math.max(0, Math.round(rawTpm));
+    if (rawBerat !== undefined) res.berat = Number(rawBerat.toFixed(1));
     
-    let status = typeof raw.status === 'string' ? raw.status : undefined;
-    if (!status) {
-      if (tpm === 0) status = 'Stagnant';
-      else if (berat < 50) status = 'Low Volume';
-      else status = 'Normal';
+    if (rawVolume !== undefined) {
+      res.volume = Math.max(0, Math.round(rawVolume));
+    } else if (rawBerat !== undefined) {
+      res.volume = Math.max(0, Math.round(rawBerat * 0.98));
     }
 
-    const esp_status = typeof raw.esp_status === 'string' ? raw.esp_status : (typeof raw.connection === 'string' ? raw.connection : 'Connected');
-    const latency = Number(raw.latency ?? raw.ping ?? 14);
-    const rssi = Number(raw.rssi ?? -64);
-    const battery = Number(raw.battery ?? raw.baterai ?? raw.batt ?? 98);
+    if (rawSuhu !== undefined) res.suhu = Number(rawSuhu.toFixed(1));
+    if (rawKelembaban !== undefined) res.kelembaban = Number(rawKelembaban.toFixed(1));
+    if (rawTekanan !== undefined) res.tekanan = Number(rawTekanan.toFixed(1));
 
-    return {
-      tpm: isNaN(tpm) ? 0 : tpm,
-      berat: isNaN(berat) ? 184.2 : Number(berat.toFixed(1)),
-      volume: isNaN(volume) ? 180 : Math.round(volume),
-      suhu: isNaN(suhu) ? 21.4 : Number(suhu.toFixed(1)),
-      kelembaban: isNaN(kelembaban) ? 48.2 : Number(kelembaban.toFixed(1)),
-      tekanan: isNaN(tekanan) ? 1013.2 : Number(tekanan.toFixed(1)),
-      status,
-      esp_status,
-      latency,
-      rssi,
-      battery,
-      lastUpdated: typeof raw.last_updated === 'number' ? raw.last_updated : Date.now(),
-    };
+    const statusVal = getVal('status_infus', 'statusInfus', 'status');
+    if (typeof statusVal === 'string' && statusVal.trim().length > 0) {
+      res.status = statusVal.trim();
+    } else if (res.tpm !== undefined || res.berat !== undefined) {
+      const curTpm = res.tpm ?? 0;
+      const curBerat = res.berat ?? 184.2;
+      if (curTpm === 0) res.status = 'Stagnant';
+      else if (curBerat < 50) res.status = 'Low Volume';
+      else res.status = 'Normal';
+    }
+
+    const espStatusVal = getVal('status_koneksi', 'statusKoneksi', 'esp_status', 'espStatus', 'connection', 'status_esp');
+    if (typeof espStatusVal === 'string') {
+      res.esp_status = espStatusVal;
+    }
+
+    const latencyVal = parseNum(getVal('latency', 'ping'));
+    if (latencyVal !== undefined) res.latency = latencyVal;
+
+    const rssiVal = parseNum(getVal('rssi'));
+    if (rssiVal !== undefined) res.rssi = rssiVal;
+
+    const batteryVal = parseNum(getVal('battery', 'baterai', 'batt'));
+    if (batteryVal !== undefined) res.battery = batteryVal;
+
+    const lastUpdatedVal = getVal('last_updated', 'lastUpdated', 'timestamp');
+    if (typeof lastUpdatedVal === 'number') {
+      res.lastUpdated = lastUpdatedVal;
+    } else {
+      res.lastUpdated = Date.now();
+    }
+
+    return res;
   }
 
   /**
@@ -210,16 +250,11 @@ class FirebaseRealtimeService {
       const dataRef = ref(this.db, targetPath);
       await set(dataRef, {
         tpm: payload.tpm ?? 0,
-        berat: payload.berat ?? 184.2,
-        volume: payload.volume ?? 180,
+        berat_gram: payload.berat ?? 184.2,
         suhu: payload.suhu ?? 21.4,
-        kelembaban: payload.kelembaban ?? 48.2,
-        tekanan: payload.tekanan ?? 1013.2,
-        status: payload.status ?? (payload.tpm === 0 ? 'Stagnant' : 'Normal'),
-        esp_status: 'Connected',
-        latency: 14,
-        rssi: -64,
-        battery: 98,
+        kelembapan: payload.kelembaban ?? 48.2,
+        status_koneksi: 'Terhubung',
+        status_infus: payload.status ?? (payload.tpm === 0 ? 'Macet / Habis' : 'Lancar'),
         last_updated: Date.now()
       });
       return { success: true };

@@ -1,0 +1,6 @@
+{
+  "name": "Med-Monitor Clinical Clarity - Bedside Infusion Telemetry",
+  "description": "Real-time bedside infusion telemetry monitor integrated with Firebase Realtime Database for ESP32 optical drop counting (TPM), load cell weight, room climate, and alert management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -7,17 +7,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { SubHeader } from './components/SubHeader';
 import { AlertBanner } from './components/AlertBanner';
-import { PatientStrip } from './components/PatientStrip';
 import { TelemetryCards } from './components/TelemetryCards';
 import { EngineeringBlueprint } from './components/EngineeringBlueprint';
 import { Footer } from './components/Footer';
 import { FirebaseModal } from './components/FirebaseModal';
-import { firebaseRtdb, DEFAULT_FIREBASE_CONFIG } from './services/firebaseRealtime';
+import { firebaseRtdb } from './services/firebaseRealtime';
 import { audioAlert } from './services/audioAlert';
 import { InfusionTelemetry, ConnectionState, FirebaseRtdbConfig } from './types/infusion';
 
 export default function App() {
-  // Baseline initial state exactly matching the reference screenshot
+  // Baseline initial state
   const [telemetry, setTelemetry] = useState<InfusionTelemetry>({
     tpm: 0,
     berat: 184.2,
@@ -35,18 +34,10 @@ export default function App() {
     battery: 98,
     tareInitial: 512.0,
     delivered: 327.8,
-    targetTpm: 20,
-    patientName: 'Eleanor Vance',
-    patientAge: 58,
-    patientGender: 'F',
-    mrn: '#492-0192',
-    attendingDoc: 'Dr. K. Holtz',
-    medicationName: 'Normal Saline 0.9% (500 mL Bag)',
-    bedLocation: 'ICU Ward 3 - Bed 04A'
+    targetTpm: 20
   });
 
   const [simulatorMode, setSimulatorMode] = useState<'alert' | 'normal'>('alert');
-  const [location, setLocation] = useState('ICU Ward 3 - Bed 04A');
   const [firebaseModalOpen, setFirebaseModalOpen] = useState(false);
   const [connectionState, setConnectionState] = useState<ConnectionState>('unconfigured');
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -165,8 +156,6 @@ export default function App() {
     <div className="min-h-screen bg-[#f3f4f6] text-[#0f172a] flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
       {/* 1. Top Clinical Station Header */}
       <Header
-        location={location}
-        onLocationChange={setLocation}
         connectionState={connectionState}
         latency={telemetry.latency}
         onOpenFirebaseConfig={() => setFirebaseModalOpen(true)}
@@ -185,7 +174,7 @@ export default function App() {
         {/* 3. Critical Alert Banner (Shown in Alert state or when TPM is stagnant) */}
         {isAlertState && (
           <AlertBanner
-            bedId={location}
+            bedId="Bed 04A"
             sensorId="ESP32-INF-09"
             stagnantSeconds={48}
             onSilence={() => audioAlert.silence()}
@@ -193,19 +182,7 @@ export default function App() {
           />
         )}
 
-        {/* 4. Patient Information & Prescription Strip */}
-        <PatientStrip
-          name={telemetry.patientName}
-          age={telemetry.patientAge}
-          gender={telemetry.patientGender}
-          mrn={telemetry.mrn}
-          attendingDoc={telemetry.attendingDoc}
-          targetTpm={telemetry.targetTpm}
-          medication={telemetry.medicationName}
-          isAlert={isAlertState}
-        />
-
-        {/* 5. Four Primary Telemetry Cards (TPM, Weight & Volume, Climate, System State) */}
+        {/* 4. Primary Telemetry Cards */}
         <TelemetryCards
           telemetry={telemetry}
           isAlertState={isAlertState}

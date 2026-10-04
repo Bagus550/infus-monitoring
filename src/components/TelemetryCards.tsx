@@ -143,6 +143,24 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
   // Drip animation speed duration based on TPM
   const dripAnimationDuration = tpm > 0 ? Math.max(0.5, Math.min(3.5, 60 / tpm)).toFixed(2) : '0';
 
+  // Dynamic Drop Interval Rhythm Status
+  let rhythmText = '';
+  let rhythmColorClass = 'text-emerald-700';
+
+  if (tpm === 0) {
+    rhythmText = 'Flatline (No Drop)';
+    rhythmColorClass = 'text-[#b91c1c]';
+  } else if (tpm > targetTpm + 5) {
+    rhythmText = `Rapid Drip (${dropIntervalSec}s / drop)`;
+    rhythmColorClass = 'text-amber-600 font-bold';
+  } else if (tpm < targetTpm - 5) {
+    rhythmText = `Slow Drip (${dropIntervalSec}s / drop)`;
+    rhythmColorClass = 'text-amber-600 font-bold';
+  } else {
+    rhythmText = `Regular (${dropIntervalSec}s / drop)`;
+    rhythmColorClass = 'text-emerald-700';
+  }
+
   // VTBI percentage calculation & initial / delivered weights
   const initialWeight = telemetry.tareInitial ?? 512.0;
   const deliveredWeight = Math.max(0, Number((initialWeight - berat).toFixed(1)));
@@ -311,8 +329,8 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
 
             <div className="flex justify-between items-center">
               <span className="text-slate-500">Drop Interval Rhythm</span>
-              <span className={`font-bold ${tpm === 0 ? 'text-[#b91c1c]' : 'text-emerald-700'}`}>
-                {tpm === 0 ? 'Flatline Detected' : `Regular (${dropIntervalSec}s / drop)`}
+              <span className={`font-bold ${rhythmColorClass}`}>
+                {rhythmText}
               </span>
             </div>
           </div>

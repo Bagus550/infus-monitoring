@@ -2,37 +2,23 @@ import React, { useState } from 'react';
 import { 
   Volume2, 
   VolumeX, 
-  Database, 
-  ChevronDown
+  Database 
 } from 'lucide-react';
 import { ConnectionState } from '../types/infusion';
 import { audioAlert } from '../services/audioAlert';
 
 interface HeaderProps {
-  location: string;
-  onLocationChange: (loc: string) => void;
   connectionState?: ConnectionState;
   latency?: number;
   onOpenFirebaseConfig: () => void;
   isFirebaseConfigured: boolean;
 }
 
-const LOCATIONS = [
-  'ICU Ward 3 - Bed 04A',
-  'ICU Ward 3 - Bed 04B',
-  'ICU Ward 2 - Bed 12A',
-  'Pediatric ICU - Bed 01',
-  'Emergency Care - Trauma 1'
-];
-
 export const Header: React.FC<HeaderProps> = ({
-  location,
-  onLocationChange,
   onOpenFirebaseConfig,
   isFirebaseConfigured
 }) => {
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
 
   const toggleAudio = () => {
     const next = !audioEnabled;
@@ -57,48 +43,6 @@ export const Header: React.FC<HeaderProps> = ({
               STATION V3.4
             </span>
           </div>
-        </div>
-
-        {/* Assigned location selector */}
-        <div className="relative">
-          <button
-            onClick={() => setLocationDropdownOpen(!locationDropdownOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#f8fafc] hover:bg-slate-100 border border-slate-200 rounded-lg text-xs transition-colors cursor-pointer"
-            title="Pilih Bed / Lokasi ICU"
-          >
-            <div className="w-5 h-5 rounded bg-emerald-50 border border-emerald-300 text-emerald-700 flex items-center justify-center font-bold text-xs">
-              ✚
-            </div>
-            <div className="text-left">
-              <span className="block text-[10px] uppercase font-mono tracking-wider text-slate-400 font-semibold leading-tight">
-                ASSIGNED LOCATION
-              </span>
-              <span className="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
-                {location}
-                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-              </span>
-            </div>
-          </button>
-
-          {locationDropdownOpen && (
-            <div className="absolute left-0 mt-1 w-56 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-40">
-              {LOCATIONS.map((loc) => (
-                <button
-                  key={loc}
-                  onClick={() => {
-                    onLocationChange(loc);
-                    setLocationDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-slate-50 flex items-center justify-between ${
-                    location === loc ? 'font-bold text-emerald-700 bg-emerald-50/50' : 'text-slate-700'
-                  }`}
-                >
-                  {loc}
-                  {location === loc && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Right side controls: Audio Alert Sync, Firebase Settings */}
@@ -142,3 +86,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

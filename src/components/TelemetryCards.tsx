@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   AlertCircle, 
   Hourglass, 
@@ -12,6 +12,123 @@ interface TelemetryCardsProps {
   telemetry: InfusionTelemetry;
   isAlertState: boolean;
 }
+
+/**
+ * Dynamic Optical Sensor Waveform Graph
+ * Generates drop signal peaks according to real-time TPM data
+ */
+const OpticalSensorGraph: React.FC<{ tpm: number; targetTpm: number }> = ({ tpm, targetTpm }) => {
+  const [points, setPoints] = useState<number[]>(() => {
+    if (tpm === 0) return Array(24).fill(0);
+    return Array(24).fill(0).map((_, i) => (i % 3 === 0 ? tpm : 0));
+  });
+
+  const tickRef = useRef(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      tickRef.current += 1;
+      setPoints((prev) => {
+        const next = [...prev.slice(1)];
+        if (tpm === 0) {
+          next.push(0);
+        } else {
+          // Calculate drop pulse frequency based on TPM
+          const pulseFrequency = Math.max(1, Math.round(30 / Math.max(1, tpm)));
+          const isPulse = tickRef.current % pulseFrequency === 0;
+          
+          if (isPulse) {
+            // Drop pulse signal spike with small analog sensor variance
+            const variance = (Math.random() * 3 - 1.5);
+            next.push(Math.max(5, tpm + variance));
+          } else {
+            next.push(0);
+          }
+        }
+        return next;
+      });
+    }, 400);
+
+    return () => clearInterval(interval);
+  }, [tpm]);
+
+  const svgWidth = 240;
+  const svgHeight = 32;
+  const baselineY = 26;
+  const stepX = svgWidth / (points.length - 1);
+
+  const maxVal = Math.max(40, ...points);
+
+  const pathCoords = points.map((val, idx) => {
+    const x = idx * stepX;
+    const y = val === 0 ? baselineY : baselineY - (val / maxVal) * 20;
+    return { x, y };
+  });
+
+  let pathD = `M ${pathCoords[0].x} ${pathCoords[0].y}`;
+  for (let i = 1; i < pathCoords.length; i++) {
+    const prev = pathCoords[i - 1];
+    const curr = pathCoords[i];
+    const cpX = (prev.x + curr.x) / 2;
+    pathD += ` C ${cpX} ${prev.y}, ${cpX} ${curr.y}, ${curr.x} ${curr.y}`;
+  }
+
+  const areaD = `${pathD} L ${svgWidth} ${svgHeight} L 0 ${svgHeight} Z`;
+
+  let strokeColor = '#10b981'; // emerald
+  if (tpm === 0) {
+    strokeColor = '#b91c1c'; // red
+  } else if (Math.abs(tpm - targetTpm) > 5) {
+    strokeColor = '#d97706'; // amber
+  }
+
+  const lastPoint = pathCoords[pathCoords.length - 1];
+
+  return (
+    <div className="h-8 w-full relative">
+      <svg className="w-full h-full overflow-visible" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="tpmGraphGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+
+        {/* Gradient fill */}
+        <path d={areaD} fill="url(#tpmGraphGrad)" />
+
+        {/* Dynamic line */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="transition-all duration-300"
+        />
+
+        {/* Live lead point pulse dot */}
+        <circle
+          cx={lastPoint.x}
+          cy={lastPoint.y}
+          r="3"
+          fill={strokeColor}
+        />
+        {tpm > 0 && (
+          <circle
+            cx={lastPoint.x}
+            cy={lastPoint.y}
+            r="5"
+            fill={strokeColor}
+            className="animate-ping"
+            opacity="0.6"
+          />
+        )}
+      </svg>
+    </div>
+  );
+};
 
 export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
   telemetry,
@@ -32,6 +149,9 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
   // Drop Interval in seconds: (60 seconds / tpm)
   const dropIntervalSec = tpm > 0 ? (60 / tpm).toFixed(1) : '0.0';
   
+  // Drip animation speed duration based on TPM
+  const dripAnimationDuration = tpm > 0 ? Math.max(0.5, Math.min(3.5, 60 / tpm)).toFixed(2) : '0';
+
   // VTBI percentage calculation & initial / delivered weights
   const initialWeight = telemetry.tareInitial ?? 512.0;
   const deliveredWeight = Math.max(0, Number((initialWeight - berat).toFixed(1)));
@@ -142,7 +262,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               </span>
             </div>
 
-            {/* Visual Drip Chamber Graphic */}
+            {/* Visual Drip Chamber Graphic with Dynamic Drip Speed */}
             <div className="relative w-16 h-20 bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-between p-1.5 shadow-2xs overflow-hidden">
               {/* Top spike & cannula */}
               <div className="w-1.5 h-2 bg-slate-300 rounded-xs" />
@@ -153,7 +273,10 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               {/* Droplet area */}
               <div className="relative w-full h-8 flex items-center justify-center">
                 {tpm > 0 ? (
-                  <Droplet className="w-4 h-4 text-blue-500 fill-blue-400 animate-drip drop-shadow-xs" />
+                  <Droplet 
+                    className="w-4 h-4 text-blue-500 fill-blue-400 animate-drip drop-shadow-xs" 
+                    style={{ animationDuration: `${dripAnimationDuration}s` }}
+                  />
                 ) : (
                   <Droplet className="w-3.5 h-3.5 text-rose-400/60" />
                 )}
@@ -204,37 +327,9 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           </div>
         </div>
 
-        {/* Sparkline Visual (Flatline or wave) */}
+        {/* Real-Time Dynamic Waveform Sparkline Graph */}
         <div className="mt-3 pt-2">
-          <div className="h-8 w-full">
-            <svg className="w-full h-full" viewBox="0 0 240 32" preserveAspectRatio="none">
-              {tpm === 0 ? (
-                // Flatline graph matching state
-                <>
-                  <path
-                    d="M 0 10 L 40 10 L 60 14 L 80 18 L 100 24 L 140 24 L 235 24"
-                    fill="none"
-                    stroke="#b91c1c"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="235" cy="24" r="3.5" fill="#b91c1c" />
-                </>
-              ) : (
-                // Normal rhythmic wave
-                <>
-                  <path
-                    d="M 0 16 Q 15 6, 30 16 T 60 16 T 90 16 T 120 16 T 150 16 T 180 16 T 210 16 L 235 16"
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="235" cy="16" r="3.5" fill="#10b981" />
-                </>
-              )}
-            </svg>
-          </div>
+          <OpticalSensorGraph tpm={tpm} targetTpm={targetTpm} />
         </div>
       </div>
 
@@ -397,6 +492,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
     </div>
   );
 };
+
 
 
 

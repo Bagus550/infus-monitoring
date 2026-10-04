@@ -55,12 +55,13 @@ const OpticalSensorGraph: React.FC<{ tpm: number; targetTpm: number }> = ({ tpm,
   const svgWidth = 240;
   const svgHeight = 32;
   const baselineY = 26;
-  const stepX = svgWidth / (points.length - 1);
+  const paddingX = 4;
+  const stepX = (svgWidth - paddingX * 2) / (points.length - 1);
 
   const maxVal = Math.max(40, ...points);
 
   const pathCoords = points.map((val, idx) => {
-    const x = idx * stepX;
+    const x = paddingX + idx * stepX;
     const y = val === 0 ? baselineY : baselineY - (val / maxVal) * 20;
     return { x, y };
   });
@@ -73,7 +74,7 @@ const OpticalSensorGraph: React.FC<{ tpm: number; targetTpm: number }> = ({ tpm,
     pathD += ` C ${cpX} ${prev.y}, ${cpX} ${curr.y}, ${curr.x} ${curr.y}`;
   }
 
-  const areaD = `${pathD} L ${svgWidth} ${svgHeight} L 0 ${svgHeight} Z`;
+  const areaD = `${pathD} L ${pathCoords[pathCoords.length - 1].x} ${svgHeight} L ${paddingX} ${svgHeight} Z`;
 
   let strokeColor = '#10b981'; // emerald
   if (tpm === 0) {
@@ -85,8 +86,8 @@ const OpticalSensorGraph: React.FC<{ tpm: number; targetTpm: number }> = ({ tpm,
   const lastPoint = pathCoords[pathCoords.length - 1];
 
   return (
-    <div className="h-8 w-full relative">
-      <svg className="w-full h-full overflow-visible" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+    <div className="h-8 w-full relative overflow-hidden">
+      <svg className="w-full h-full" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
         <defs>
           <linearGradient id="tpmGraphGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
@@ -102,29 +103,19 @@ const OpticalSensorGraph: React.FC<{ tpm: number; targetTpm: number }> = ({ tpm,
           d={pathD}
           fill="none"
           stroke={strokeColor}
-          strokeWidth="2.2"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           className="transition-all duration-300"
         />
 
-        {/* Live lead point pulse dot */}
+        {/* Neat static lead point dot */}
         <circle
           cx={lastPoint.x}
           cy={lastPoint.y}
           r="3"
           fill={strokeColor}
         />
-        {tpm > 0 && (
-          <circle
-            cx={lastPoint.x}
-            cy={lastPoint.y}
-            r="5"
-            fill={strokeColor}
-            className="animate-ping"
-            opacity="0.6"
-          />
-        )}
       </svg>
     </div>
   );

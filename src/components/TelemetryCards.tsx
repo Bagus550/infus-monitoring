@@ -4,11 +4,7 @@ import {
   Hourglass, 
   Thermometer, 
   Droplet,
-  Radio,
-  Cpu,
-  Wifi,
-  Battery,
-  Clock
+  Radio
 } from 'lucide-react';
 import { InfusionTelemetry } from '../types/infusion';
 
@@ -81,11 +77,8 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
   const tempStatus = getTempBadge(suhu);
   const humStatus = getHumBadge(kelembaban);
 
-  // System Esp Status
-  const isOnline = telemetry.esp_status ? telemetry.esp_status.toLowerCase().includes('connect') || telemetry.esp_status.toLowerCase().includes('online') : true;
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
       {/* ---------------- CARD 1: DROP RATE (TPM) ---------------- */}
       <div className={`bg-white rounded-2xl border p-5 shadow-xs transition-all relative flex flex-col justify-between ${
         isAlertState || tpm === 0 
@@ -401,77 +394,9 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           </div>
         </div>
       </div>
-
-      {/* ---------------- CARD 4: IOT SYSTEM TELEMETRY ---------------- */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-        <div>
-          {/* Header */}
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div>
-              <span className="block text-[10px] uppercase font-mono tracking-wider font-semibold text-slate-400">
-                HARDWARE NODE HEALTH
-              </span>
-              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-1.5 font-sans">
-                IoT Node State
-                <Cpu className="w-3.5 h-3.5 text-blue-500" />
-              </h3>
-            </div>
-
-            {/* Status Pill */}
-            <span className={`px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border flex items-center gap-1 ${
-              isOnline 
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300' 
-                : 'bg-rose-50 text-rose-700 border-rose-300'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-              {isOnline ? 'ONLINE' : 'OFFLINE'}
-            </span>
-          </div>
-
-          {/* Network Metrics */}
-          <div className="mt-2 space-y-2">
-            <div className="flex justify-between items-center text-xs font-mono">
-              <span className="text-slate-500 flex items-center gap-1">
-                <Wifi className="w-3 h-3 text-blue-500" />
-                WiFi Signal (RSSI)
-              </span>
-              <span className="font-bold text-slate-800">
-                {telemetry.rssi ?? -64} dBm
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-xs font-mono">
-              <span className="text-slate-500 flex items-center gap-1">
-                <Clock className="w-3 h-3 text-purple-500" />
-                Network Latency
-              </span>
-              <span className="font-bold text-slate-800">
-                {telemetry.latency ?? 14} ms
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-xs font-mono">
-              <span className="text-slate-500 flex items-center gap-1">
-                <Battery className="w-3 h-3 text-emerald-500" />
-                Node Battery
-              </span>
-              <span className="font-bold text-emerald-700">
-                {telemetry.battery ?? 98}%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Firmware & Uptime */}
-        <div className="pt-2 border-t border-slate-100 text-xs font-mono">
-          <div className="flex justify-between items-center text-slate-500 text-[11px]">
-            <span>{telemetry.firmware ?? 'FW v2.4.1'}</span>
-            <span>Uptime: {telemetry.uptime ?? '18h 42m'}</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
+
 
 

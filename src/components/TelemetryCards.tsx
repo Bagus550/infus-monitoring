@@ -4,7 +4,11 @@ import {
   Hourglass, 
   Thermometer, 
   Droplet,
-  Radio
+  Radio,
+  Cpu,
+  Wifi,
+  Battery,
+  Clock
 } from 'lucide-react';
 import { InfusionTelemetry } from '../types/infusion';
 
@@ -25,17 +29,63 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
 
   // Flow rate: 1 drop = 1/20 mL -> mL/h = tpm * 3
   const flowRate = (tpm * 3).toFixed(1);
+  const flowRateNum = tpm * 3;
   const targetTpm = telemetry.targetTpm ?? 20;
-  const compliance = targetTpm > 0 ? Math.min(100, Math.round((tpm / targetTpm) * 100)) : 0;
+  const rawCompliance = targetTpm > 0 ? Math.round((tpm / targetTpm) * 100) : 0;
+
+  // Drop Interval in seconds: (60 seconds / tpm)
+  const dropIntervalSec = tpm > 0 ? (60 / tpm).toFixed(1) : '0.0';
   
-  // VTBI percentage calculation (e.g., 184.2g of 512g initial or 500mL bag)
+  // VTBI percentage calculation & initial / delivered weights
   const initialWeight = telemetry.tareInitial ?? 512.0;
-  const deliveredWeight = telemetry.delivered ?? Number((initialWeight - berat).toFixed(1));
+  const deliveredWeight = Math.max(0, Number((initialWeight - berat).toFixed(1)));
   const vtbiPercent = Math.max(0, Math.min(100, Math.round((berat / initialWeight) * 100)));
-  const volumeMl = telemetry.volume ?? Math.round(berat * 0.98);
+  const volumeMl = telemetry.volume ?? Math.max(0, Math.round(berat * 0.98));
+
+  // Dynamic ETA Calculation (Hours & Minutes remaining)
+  let etaText = '';
+  let etaColorClass = 'text-slate-800';
+
+  if (tpm === 0 || flowRateNum === 0) {
+    etaText = 'Stopped (Flow Stagnant)';
+    etaColorClass = 'text-[#b91c1c] font-bold';
+  } else {
+    const remainingHours = volumeMl / flowRateNum;
+    const hours = Math.floor(remainingHours);
+    const mins = Math.round((remainingHours - hours) * 60);
+    
+    // Label status dependent on flow compliance
+    const statusNote = rawCompliance >= 90 && rawCompliance <= 110 
+      ? 'Nominal' 
+      : rawCompliance < 90 
+        ? 'Low Rate' 
+        : 'High Rate';
+        
+    etaText = `${hours}h ${mins}m (${statusNote})`;
+    etaColorClass = isAlertState ? 'text-[#b91c1c]' : 'text-slate-800';
+  }
+
+  // Climate status badges
+  const getTempBadge = (temp: number) => {
+    if (temp < 18.0) return { label: 'COLD (<18°C)', class: 'bg-blue-50 text-blue-700 border-blue-200' };
+    if (temp > 24.0) return { label: 'WARM (>24°C)', class: 'bg-amber-50 text-amber-700 border-amber-200' };
+    return { label: 'NORMAL (20-22°C)', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+  };
+
+  const getHumBadge = (hum: number) => {
+    if (hum < 40.0) return { label: 'DRY (<40%)', class: 'bg-amber-50 text-amber-700 border-amber-200' };
+    if (hum > 60.0) return { label: 'HUMID (>60%)', class: 'bg-blue-50 text-blue-700 border-blue-200' };
+    return { label: 'OPTIMAL (40-60%)', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+  };
+
+  const tempStatus = getTempBadge(suhu);
+  const humStatus = getHumBadge(kelembaban);
+
+  // System Esp Status
+  const isOnline = telemetry.esp_status ? telemetry.esp_status.toLowerCase().includes('connect') || telemetry.esp_status.toLowerCase().includes('online') : true;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
       {/* ---------------- CARD 1: DROP RATE (TPM) ---------------- */}
       <div className={`bg-white rounded-2xl border p-5 shadow-xs transition-all relative flex flex-col justify-between ${
         isAlertState || tpm === 0 
@@ -55,11 +105,23 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               </h3>
             </div>
 
-            {/* Status Badge */}
+            {/* Dynamic Status Badge */}
             {isAlertState || tpm === 0 ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-[#fde8e8] text-[#c51c1c] border border-rose-300">
                 <AlertCircle className="w-3 h-3 text-[#c51c1c]" />
-                STUCK (48s stagnant)
+                {telemetry.status && telemetry.status.toLowerCase() !== 'normal' 
+                  ? telemetry.status.toUpperCase() 
+                  : 'STAGNANT FLOW'}
+              </span>
+            ) : tpm < targetTpm - 5 ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                SLOW FLOW ({tpm} TPM)
+              </span>
+            ) : tpm > targetTpm + 5 ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                HIGH FLOW ({tpm} TPM)
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">
@@ -109,7 +171,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
                 <div className="absolute inset-0 bg-blue-500/20" />
               </div>
 
-              {/* Stagnant pill overlay if 0 TPM */}
+              {/* Stagnant overlay if 0 TPM */}
               {(isAlertState || tpm === 0) && (
                 <div className="absolute bottom-1 inset-x-1 bg-[#c51c1c] text-white text-[9px] font-mono font-bold text-center py-0.5 rounded shadow-xs uppercase tracking-tighter">
                   STAGNANT
@@ -124,16 +186,26 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               <span className="text-slate-500">Calculated Flow Rate</span>
               <span className="font-bold text-slate-800">{flowRate} mL/h</span>
             </div>
+            
             <div className="flex justify-between items-center">
               <span className="text-slate-500">Prescription Compliance</span>
-              <span className={`font-bold ${compliance < 80 ? 'text-[#b91c1c]' : 'text-emerald-700'}`}>
-                {compliance}% (Target: {targetTpm} &plusmn; 2)
+              <span className={`font-bold ${
+                tpm === 0 
+                  ? 'text-[#b91c1c]' 
+                  : rawCompliance >= 90 && rawCompliance <= 110 
+                    ? 'text-emerald-700' 
+                    : 'text-amber-600'
+              }`}>
+                {tpm === 0 
+                  ? `0% (No Flow)` 
+                  : `${rawCompliance}% (Target: ${targetTpm} ± 2)`}
               </span>
             </div>
+
             <div className="flex justify-between items-center">
-              <span className="text-slate-500">15m Drop Interval Rhythm</span>
+              <span className="text-slate-500">Drop Interval Rhythm</span>
               <span className={`font-bold ${tpm === 0 ? 'text-[#b91c1c]' : 'text-emerald-700'}`}>
-                {tpm === 0 ? 'Flatline Detected' : 'Regular (3.0s &plusmn; 0.1)'}
+                {tpm === 0 ? 'Flatline Detected' : `Regular (${dropIntervalSec}s / drop)`}
               </span>
             </div>
           </div>
@@ -144,7 +216,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           <div className="h-8 w-full">
             <svg className="w-full h-full" viewBox="0 0 240 32" preserveAspectRatio="none">
               {tpm === 0 ? (
-                // Flatline graph matching image
+                // Flatline graph matching state
                 <>
                   <path
                     d="M 0 10 L 40 10 L 60 14 L 80 18 L 100 24 L 140 24 L 235 24"
@@ -188,9 +260,19 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               </h3>
             </div>
 
-            {/* VTBI Pill */}
-            <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
-              {vtbiPercent}% VTBI
+            {/* Dynamic VTBI Pill */}
+            <span className={`px-2.5 py-1 rounded-md text-[11px] font-mono font-bold border ${
+              vtbiPercent <= 10
+                ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
+                : vtbiPercent <= 25
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-slate-100 text-slate-700 border-slate-200'
+            }`}>
+              {vtbiPercent <= 10 
+                ? `CRITICAL (${vtbiPercent}%)` 
+                : vtbiPercent <= 25 
+                  ? `LOW VTBI (${vtbiPercent}%)` 
+                  : `${vtbiPercent}% VTBI`}
             </span>
           </div>
 
@@ -228,7 +310,9 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
 
               {/* Blue fluid fill dynamic level */}
               <div 
-                className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-b-lg transition-all duration-700 relative overflow-hidden"
+                className={`w-full rounded-b-lg transition-all duration-700 relative overflow-hidden ${
+                  vtbiPercent <= 15 ? 'bg-gradient-to-t from-rose-600 to-rose-400' : 'bg-gradient-to-t from-blue-600 to-blue-400'
+                }`}
                 style={{ height: `${Math.max(12, Math.min(85, vtbiPercent))}%` }}
               >
                 <div className="absolute top-0 inset-x-0 h-1 bg-white/40" />
@@ -250,8 +334,8 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               <Hourglass className="w-3 h-3 text-emerald-600" />
               Est. Completion
             </span>
-            <span className={`font-bold ${isAlertState ? 'text-[#b91c1c]' : 'text-slate-800'}`}>
-              {isAlertState ? '1h 42m (Delayed)' : '3h 12m (Nominal)'}
+            <span className={`font-bold ${etaColorClass}`}>
+              {etaText}
             </span>
           </div>
 
@@ -282,8 +366,8 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           <div className="mt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono text-slate-500">Temperature</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                NORMAL
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${tempStatus.class}`}>
+                {tempStatus.label}
               </span>
             </div>
             <div className="flex items-baseline gap-1 mt-0.5">
@@ -301,8 +385,8 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           <div className="mt-3 pt-3 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono text-slate-500">Relative Humidity</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                OPTIMAL
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${humStatus.class}`}>
+                {humStatus.label}
               </span>
             </div>
             <div className="flex items-baseline gap-1 mt-0.5">
@@ -317,7 +401,77 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ---------------- CARD 4: IOT SYSTEM TELEMETRY ---------------- */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+        <div>
+          {/* Header */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <span className="block text-[10px] uppercase font-mono tracking-wider font-semibold text-slate-400">
+                HARDWARE NODE HEALTH
+              </span>
+              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-1.5 font-sans">
+                IoT Node State
+                <Cpu className="w-3.5 h-3.5 text-blue-500" />
+              </h3>
+            </div>
+
+            {/* Status Pill */}
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-mono font-bold border flex items-center gap-1 ${
+              isOnline 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-300' 
+                : 'bg-rose-50 text-rose-700 border-rose-300'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+              {isOnline ? 'ONLINE' : 'OFFLINE'}
+            </span>
+          </div>
+
+          {/* Network Metrics */}
+          <div className="mt-2 space-y-2">
+            <div className="flex justify-between items-center text-xs font-mono">
+              <span className="text-slate-500 flex items-center gap-1">
+                <Wifi className="w-3 h-3 text-blue-500" />
+                WiFi Signal (RSSI)
+              </span>
+              <span className="font-bold text-slate-800">
+                {telemetry.rssi ?? -64} dBm
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center text-xs font-mono">
+              <span className="text-slate-500 flex items-center gap-1">
+                <Clock className="w-3 h-3 text-purple-500" />
+                Network Latency
+              </span>
+              <span className="font-bold text-slate-800">
+                {telemetry.latency ?? 14} ms
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center text-xs font-mono">
+              <span className="text-slate-500 flex items-center gap-1">
+                <Battery className="w-3 h-3 text-emerald-500" />
+                Node Battery
+              </span>
+              <span className="font-bold text-emerald-700">
+                {telemetry.battery ?? 98}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Firmware & Uptime */}
+        <div className="pt-2 border-t border-slate-100 text-xs font-mono">
+          <div className="flex justify-between items-center text-slate-500 text-[11px]">
+            <span>{telemetry.firmware ?? 'FW v2.4.1'}</span>
+            <span>Uptime: {telemetry.uptime ?? '18h 42m'}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
 

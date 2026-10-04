@@ -207,21 +207,21 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
   const humStatus = getHumBadge(kelembaban);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
       {/* ---------------- CARD 1: DROP RATE (TPM) ---------------- */}
-      <div className={`bg-white rounded-2xl border p-5 shadow-xs transition-all relative flex flex-col justify-between ${
+      <div className={`bg-white rounded-2xl border p-4 sm:p-5 shadow-xs transition-all relative flex flex-col justify-between ${
         isAlertState || tpm === 0 
           ? 'border-rose-200 ring-2 ring-rose-400/20' 
           : 'border-slate-200'
       }`}>
         <div>
           {/* Header */}
-          <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-start justify-between gap-2 mb-2 flex-wrap sm:flex-nowrap">
             <div>
               <span className="block text-[10px] uppercase font-mono tracking-wider font-semibold text-slate-400">
                 OPTICAL SENSOR TELEMETRY
               </span>
-              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-1.5 font-sans">
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-1.5 font-sans">
                 Drop Rate (TPM)
                 <Radio className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
               </h3>
@@ -229,24 +229,24 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
 
             {/* Dynamic Status Badge */}
             {isAlertState || tpm === 0 ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-[#fde8e8] text-[#c51c1c] border border-rose-300">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-mono font-bold bg-[#fde8e8] text-[#c51c1c] border border-rose-300">
                 <AlertCircle className="w-3 h-3 text-[#c51c1c]" />
                 {telemetry.status && telemetry.status.toLowerCase() !== 'normal' 
                   ? telemetry.status.toUpperCase() 
                   : 'STAGNANT FLOW'}
               </span>
             ) : tpm < targetTpm - 5 ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-300">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                 SLOW FLOW ({tpm} TPM)
               </span>
             ) : tpm > targetTpm + 5 ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-300">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                 HIGH FLOW ({tpm} TPM)
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 NORMAL FLOW
               </span>
@@ -256,8 +256,8 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           {/* Large Readout + Visual Drip Chamber */}
           <div className="flex items-center justify-between mt-3 mb-4">
             <div>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-5xl font-extrabold font-mono tracking-tight tabular-nums ${
+              <div className="flex items-baseline gap-1.5 sm:gap-2">
+                <span className={`text-4xl sm:text-5xl font-extrabold font-mono tracking-tight tabular-nums ${
                   tpm === 0 ? 'text-[#b91c1c]' : 'text-slate-900'
                 }`}>
                   {tpm}
@@ -272,7 +272,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
             </div>
 
             {/* Visual Drip Chamber Graphic with Dynamic Drip Speed */}
-            <div className="relative w-16 h-20 bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-between p-1.5 shadow-2xs overflow-hidden">
+            <div className="relative w-14 sm:w-16 h-20 bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-between p-1.5 shadow-2xs overflow-hidden shrink-0">
               {/* Top spike & cannula */}
               <div className="w-1.5 h-2 bg-slate-300 rounded-xs" />
               
@@ -306,7 +306,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           </div>
 
           {/* Sub Metrics */}
-          <div className="space-y-1.5 text-xs font-mono pt-2 border-t border-slate-100">
+          <div className="space-y-1.5 text-[11px] sm:text-xs font-mono pt-2 border-t border-slate-100">
             <div className="flex justify-between items-center">
               <span className="text-slate-500">Calculated Flow Rate</span>
               <span className="font-bold text-slate-800">{flowRate} mL/h</span>
@@ -343,22 +343,22 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
       </div>
 
       {/* ---------------- CARD 2: FLUID WEIGHT & VOLUME ---------------- */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between">
         <div>
           {/* Header */}
-          <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-start justify-between gap-2 mb-2 flex-wrap sm:flex-nowrap">
             <div>
               <span className="block text-[10px] uppercase font-mono tracking-wider font-semibold text-slate-400">
                 PRECISION STRAIN GAUGE
               </span>
-              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-1.5 font-sans">
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-1.5 font-sans">
                 Fluid Weight &amp; Volume
                 <Hourglass className="w-3.5 h-3.5 text-blue-500" />
               </h3>
             </div>
 
             {/* Dynamic VTBI Pill */}
-            <span className={`px-2.5 py-1 rounded-md text-[11px] font-mono font-bold border ${
+            <span className={`px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-mono font-bold border ${
               vtbiPercent <= 10
                 ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
                 : vtbiPercent <= 25
@@ -381,7 +381,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           <div className="flex items-center justify-between mt-1 mb-4">
             <div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-5xl font-extrabold font-mono tracking-tight text-slate-900 tabular-nums">
+                <span className="text-4xl sm:text-5xl font-extrabold font-mono tracking-tight text-slate-900 tabular-nums">
                   {berat.toFixed(1)}
                 </span>
                 <span className="text-sm font-mono font-bold text-slate-500">
@@ -394,7 +394,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
             </div>
 
             {/* Precision IV Bag Graphic */}
-            <div className="relative w-14 h-24 bg-slate-50 border-2 border-slate-300 rounded-xl flex flex-col items-center justify-between p-1 shadow-2xs overflow-hidden">
+            <div className="relative w-14 h-24 bg-slate-50 border-2 border-slate-300 rounded-xl flex flex-col items-center justify-between p-1 shadow-2xs overflow-hidden shrink-0">
               {/* Eyelet top hanger */}
               <div className="w-3 h-1.5 border border-slate-400 rounded-full bg-white mb-0.5" />
 
@@ -425,7 +425,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
         </div>
 
         {/* Bottom Details */}
-        <div className="pt-2 border-t border-slate-100 text-xs font-mono">
+        <div className="pt-2 border-t border-slate-100 text-[11px] sm:text-xs font-mono">
           <div className="flex justify-between items-center mb-1">
             <span className="text-slate-500 flex items-center gap-1">
               <Hourglass className="w-3 h-3 text-emerald-600" />
@@ -436,7 +436,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
             </span>
           </div>
 
-          <div className="flex justify-between items-center text-slate-500 text-[11px]">
+          <div className="flex justify-between items-center text-slate-500 text-[10px] sm:text-[11px]">
             <span>Tare Initial: {initialWeight.toFixed(1)}g</span>
             <span>Delivered: {deliveredWeight.toFixed(1)}g</span>
           </div>
@@ -444,7 +444,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
       </div>
 
       {/* ---------------- CARD 3: ROOM CLIMATE ---------------- */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between">
         <div>
           {/* Header */}
           <div className="flex items-start justify-between gap-2 mb-2">
@@ -452,7 +452,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               <span className="block text-[10px] uppercase font-mono tracking-wider font-semibold text-slate-400">
                 ICU AMBIENT POD
               </span>
-              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-1.5 font-sans">
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-1.5 font-sans">
                 Room Climate
                 <Thermometer className="w-3.5 h-3.5 text-blue-500" />
               </h3>
@@ -468,12 +468,12 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               </span>
             </div>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-3xl font-extrabold font-mono tracking-tight text-slate-900 tabular-nums">
+              <span className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-slate-900 tabular-nums">
                 {suhu.toFixed(1)}
               </span>
               <span className="text-sm font-mono text-slate-500 font-bold">&deg;C</span>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">
+            <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
               Ideal ICU: 20.0-22.0&deg;C
             </span>
           </div>
@@ -487,12 +487,12 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
               </span>
             </div>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-3xl font-extrabold font-mono tracking-tight text-slate-900 tabular-nums">
+              <span className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-slate-900 tabular-nums">
                 {kelembaban.toFixed(1)}
               </span>
               <span className="text-sm font-mono text-slate-500 font-bold">% RH</span>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">
+            <span className="text-[10px] sm:text-[11px] font-mono text-slate-400">
               Target sterile: 40-60%
             </span>
           </div>
@@ -501,6 +501,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
     </div>
   );
 };
+
 
 
 
